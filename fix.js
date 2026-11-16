@@ -187,6 +187,16 @@ function est_feminin(metier) {
     return /^\s*une\b|conseill[eè]re/i.test(metier || '');
 }
 
+// Bas de la zone visible de la page (Canva exporte avec un fond perdu : CropBox décalée)
+function origine_y(page) {
+    try {
+        const cb = page.node.lookup(PDFLib.PDFName.of('CropBox'), PDFLib.PDFArray)
+        return cb.lookup(1, PDFLib.PDFNumber).value()
+    } catch (e) {
+        return 0
+    }
+}
+
 // Réduit la taille d'un texte jusqu'à ce qu'il tienne dans la largeur max
 function taille_max(texte, police, taille, largeurMax) {
     while (taille > 4 && police.widthOfTextAtSize(texte, taille) > largeurMax) taille -= 0.5;
@@ -215,20 +225,22 @@ async function panneau(nom, numero, photo) {
     const qrImage = await pdfDoc.embedPng(await qr_to_png(format_agent(nom)))
 
     const rsacText = get_RSAC()
-    const centreX = 1322 // centre de la colonne de droite
+    const centreX = 1321.5 // centre de la colonne de droite
 
-    // Avec photo : nom sous la photo. Sans photo : nom plus grand, remonté au centre de la zone.
-    const tailleNom = taille_max(nom, ppregu, pngImage ? 90 : 120, 900)
-    const yNom = pngImage ? 474 : 600
-    const tailleNum = taille_max(numero, ppextra, 125, 980)
+    // Positions mesurées sur ta version remplie (Canva). Sans photo : nom plus grand, remonté.
+    const tailleNom = taille_max(nom, ppregu, pngImage ? 84.7 : 110, 900)
+    const yNom = pngImage ? 477.4 : 600
+    const tailleNum = taille_max(numero, ppextra, 117.9, 980)
 
     for (const page of pages) {
-        draw_Image(qrImage, page, 209, 407, 391, 391)
-        if (pngImage) draw_Image(pngImage, page, 1173, 555, 298, 298)
-        draw_Text(nom, page, centreX - ppregu.widthOfTextAtSize(nom, tailleNom) / 2, yNom, tailleNom, ppregu, marron, 0)
-        draw_Text(numero, page, centreX - ppextra.widthOfTextAtSize(numero, tailleNum) / 2, 340, tailleNum, ppextra, marron, 0)
+        // Canva ajoute un fond perdu : on décale tout de l'origine de la zone visible
+        const oy = origine_y(page)
+        draw_Image(qrImage, page, 209.1, 407.2 + oy, 391.4, 391.4)
+        if (pngImage) draw_Image(pngImage, page, 1173.1, 554.7 + oy, 297.7, 297.7)
+        draw_Text(nom, page, centreX - ppregu.widthOfTextAtSize(nom, tailleNom) / 2, yNom + oy, tailleNom, ppregu, marron, 0)
+        draw_Text(numero, page, centreX - ppextra.widthOfTextAtSize(numero, tailleNum) / 2, 345.4 + oy, tailleNum, ppextra, marron, 0)
         if (rsacText) {
-            draw_Text(rsacText, page, 1356 - ppregu.widthOfTextAtSize(rsacText, 15) / 2, 278, 15, ppregu, marron, 0)
+            draw_Text(rsacText, page, 1355.8 - ppregu.widthOfTextAtSize(rsacText, 14) / 2, 277.9 + oy, 14, ppregu, marron, 0)
         }
     }
 
@@ -319,11 +331,13 @@ async function flyer(nom, mail, metier, numero, photo) {
 
     const page = pdfDoc.getPages()[1]
     const { width } = page.getSize()
+    // Canva ajoute un fond perdu : on décale tout de l'origine de la zone visible
+    const oy = origine_y(page)
     const centre = width / 2
 
     // Phrase d'accroche (accordée selon un/une mandataire)
-    draw_Text(phrase1, page, centre - lato.widthOfTextAtSize(phrase1, 13.3) / 2, 486.8, 13.3, lato, marron, 0)
-    draw_Text(phrase2, page, centre - lato.widthOfTextAtSize(phrase2, 13.3) / 2, 468.8, 13.3, lato, marron, 0)
+    draw_Text(phrase1, page, centre - lato.widthOfTextAtSize(phrase1, 13.3) / 2, 486.8 + oy, 13.3, lato, marron, 0)
+    draw_Text(phrase2, page, centre - lato.widthOfTextAtSize(phrase2, 13.3) / 2, 468.8 + oy, 13.3, lato, marron, 0)
 
     // Bloc agent : aligné à gauche à côté de la photo, ou centré sans photo
     const lignes = [
@@ -336,23 +350,23 @@ async function flyer(nom, mail, metier, numero, photo) {
     for (const l of lignes) {
         const taille = taille_max(l.texte, l.police, 14, largeurMax)
         const x = photo !== null ? 41.9 : centre - l.police.widthOfTextAtSize(l.texte, taille) / 2
-        draw_Text(l.texte, page, x, l.y, taille, l.police, l.couleur, 0)
+        draw_Text(l.texte, page, x, l.y + oy, taille, l.police, l.couleur, 0)
     }
 
     // Photo ronde (avec sa bordure orange)
     if (photo !== null) {
         const pngImage = await pdfDoc.embedPng(await fetch(photo).then(res => res.arrayBuffer()))
-        draw_Image(pngImage, page, 299.9, 356.9, 77.4, 77.4)
+        draw_Image(pngImage, page, 299.9, 356.9 + oy, 77.4, 77.4)
     }
 
     // QR code dans le carré blanc
     const qrImage = await pdfDoc.embedPng(await qr_to_png(format_agent(nom)))
-    draw_Image(qrImage, page, 188.4, 119.7, 42.5, 42.5)
+    draw_Image(qrImage, page, 188.4, 119.7 + oy, 42.5, 42.5)
 
     // Mention légale (blanc, en bas)
     const rsac = get_RSAC()
     const mention = (rsac ? rsac + " - " : "") + "Ne pas jeter sur la voie publique"
-    draw_Text(mention, page, centre - ppregu.widthOfTextAtSize(mention, 4) / 2, 54.1, 4, ppregu, rgb(1, 1, 1), 0)
+    draw_Text(mention, page, centre - ppregu.widthOfTextAtSize(mention, 4) / 2, 54.1 + oy, 4, ppregu, rgb(1, 1, 1), 0)
 
     return await pdfDoc.save();
 }
