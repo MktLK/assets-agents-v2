@@ -176,7 +176,8 @@ var ppsansregu = 'https://cdn.jsdelivr.net/gh/theoliberkeys/assets-agents/ppsans
 var ppsansextra = 'https://cdn.jsdelivr.net/gh/theoliberkeys/assets-agents/ppsansextra.otf';
 
 // Adresse des fichiers du repo (modèles PDF + polices)
-var repoV2 = 'https://cdn.jsdelivr.net/gh/MktLK/assets-agents-v2@main/';
+// Fichiers lus sur GitHub (raw), branche main : un nouveau modèle déposé est pris en compte en ~5 min
+var repoV2 = 'https://raw.githubusercontent.com/MktLK/assets-agents-v2/main/';
 var latoregu = repoV2 + 'lato-regular.ttf';
 var modelePanneau = repoV2 + 'panneau_bpce.pdf';
 var modeleFlyer = repoV2 + 'flyer_bpce.pdf';
