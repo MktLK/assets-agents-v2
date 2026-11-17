@@ -181,6 +181,7 @@ var repoV2 = 'https://raw.githubusercontent.com/MktLK/assets-agents-v2/main/';
 var latoregu = repoV2 + 'lato-regular.ttf';
 var modelePanneau = repoV2 + 'panneau_bpce.pdf';
 var modeleFlyer = repoV2 + 'flyer_bpce.pdf';
+var modeleCarte = repoV2 + 'carte_bpce.pdf';
 
 // Vrai si l'agent a coché "Une mandataire immobilier" (accord au féminin)
 function est_feminin(metier) {
@@ -247,71 +248,57 @@ async function panneau(nom, numero, photo) {
     return await pdfDoc.save();
 }
 
-// Fonction pour réaliser la carte de visite
+// Carte de visite (V2 - DA BPCE), fond recto-verso 156 x 235.5 pt (55 x 83 mm)
+// Le modèle du repo remplace le fichier passé par la page ("fichier" est ignoré).
+// "Mandataire immobilier", le site et le verso sont déjà dans le fond.
+// Photo (avec sa bordure orange) en bas à gauche seulement si photo !== null.
 async function carte_de_visite(nom, mail, metier, numero, fichier, photo) {
-    // Récupère le fichier
-    const url = fichier;
-    const existingPdfBytes = await fetch(url).then(res => res.arrayBuffer())
+    const existingPdfBytes = await fetch(modeleCarte).then(res => res.arrayBuffer())
     const pdfDoc = await PDFDocument.load(existingPdfBytes)
 
-    // Récupère les polices
-    var lienfont = ppsansextra
-    var fontBytes = await fetch(lienfont).then(res => res.arrayBuffer())
     pdfDoc.registerFontkit(fontkit)
-    const ppextra = await pdfDoc.embedFont(fontBytes)
+    const ppextra = await pdfDoc.embedFont(await fetch(ppsansextra).then(res => res.arrayBuffer()))
+    const ppregu = await pdfDoc.embedFont(await fetch(ppsansregu).then(res => res.arrayBuffer()))
 
-    var lienfont = ppsansregu
-    var fontBytes = await fetch(lienfont).then(res => res.arrayBuffer())
-    pdfDoc.registerFontkit(fontkit)
-    const ppregu = await pdfDoc.embedFont(fontBytes)
+    const page = pdfDoc.getPages()[0]
+    const { width } = page.getSize()
+    // Canva ajoute un fond perdu : on décale tout de l'origine de la zone visible
+    const oy = origine_y(page)
+    const x = 15.6
+    const largeurMax = 125
 
-    // Récupère les pages
-    const pages = pdfDoc.getPages()
-    const firstPage = pages[0]
-    const { width, height } = firstPage.getSize()
+    // Prénom (regular) puis NOM (extra bold, majuscules), en orange
+    const elPrenom = document.getElementById("prenom")
+    const elNom = document.getElementById("nom")
+    const prenom = elPrenom ? elPrenom.value.trim() : nom
+    const nomFamille = elNom ? elNom.value.trim().toUpperCase() : ""
+    draw_Text(prenom, page, x, 188.7 + oy, taille_max(prenom, ppregu, 10, largeurMax), ppregu, orange, 0)
+    if (nomFamille) {
+        draw_Text(nomFamille, page, x, 175.5 + oy, taille_max(nomFamille, ppextra, 10, largeurMax), ppextra, orange, 0)
+    }
 
-    var excedent = (nom.length - 11);
-    excedent = (excedent < 0) ? 0 : excedent;
-    var mail_excedent = mail.length > 35 ? Math.round((mail.length - 35) / 6) : 0;
+    // Téléphone et e-mail (beige)
+    draw_Text(numero, page, x, 142.7 + oy, taille_max(numero, ppregu, 7, largeurMax), ppregu, beige, 0)
+    draw_Text(mail, page, x, 128.2 + oy, taille_max(mail, ppregu, 6.5, largeurMax), ppregu, beige, 0)
 
-    // Place le nom, le métier, le numéro et le mail
-    draw_Text(nom, firstPage, 15, 136, 10 - (excedent / 11), ppextra, orange, 0);
-    draw_Text(metier, firstPage, 15, 118, 10, ppregu, beige, 0);
-    draw_Text(numero, firstPage, 15, 100, 8, ppregu, beige, 0);
-    draw_Text(mail, firstPage, 15, 82, 8 - mail_excedent, ppregu, beige, 0);
-    draw_Text("www.liberkeys.com", firstPage, 15, 64, 8, ppregu, orange, 0);
-
-    // Récupère le RSAC
-    const rsacText = get_RSAC();
+    // Mention légale centrée en bas (gris clair)
+    const rsacText = get_RSAC()
     if (rsacText) {
-        draw_Text(rsacText, firstPage, 15, 18, 3, ppregu, beige, 0);
+        const t = taille_max(rsacText, ppregu, 3.06, width - 20)
+        draw_Text(rsacText, page, width / 2 - ppregu.widthOfTextAtSize(rsacText, t) / 2, 6.4 + oy, t, ppregu, rgb(0.85, 0.85, 0.85), 0)
     }
 
-    // Récupère l'image
-    if(photo != null) {
-        var lienimage = photo;
-        var pngImageBytes = await fetch(lienimage).then(res => res.arrayBuffer())
-        var pngImage = await pdfDoc.embedPng(pngImageBytes)
-        var pngDims = pngImage.scale(0.10)
-    
-        // Place l'image
-        draw_Image(pngImage, firstPage, 167, 85, pngDims.width, pngDims.height)
+    // Photo ronde (avec sa bordure orange)
+    if (photo !== null) {
+        const pngImage = await pdfDoc.embedPng(await fetch(photo).then(res => res.arrayBuffer()))
+        draw_Image(pngImage, page, 15.1, 26.0 + oy, 62.9, 62.9)
     }
 
-    // Récupère le lien
-    var lien_agent = format_agent(nom);
-    const qrCode = get_QRCode(lien_agent);
-    pngImageBytes = await qrCode.getRawData("png").then(res => res.arrayBuffer())
-    pngImage = await pdfDoc.embedPng(pngImageBytes)
-    pngDims = pngImage.scale(0.18)
+    // QR code dans le carré blanc
+    const qrImage = await pdfDoc.embedPng(await qr_to_png(format_agent(nom)))
+    draw_Image(qrImage, page, 107.1, 42.9 + oy, 24.7, 24.7)
 
-    // Place le QRCode
-    draw_Image(pngImage, firstPage, 180, 28, pngDims.width, pngDims.height)
-
-    const pdfBytes = await pdfDoc.save()
-
-    // Enregistre le fichier
-    return pdfBytes;
+    return await pdfDoc.save();
 }
 
 // Fonction pour réaliser le flyer (V2 - DA BPCE), fond A5 recto-verso 419.25 x 595.5 pt
