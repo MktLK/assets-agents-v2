@@ -183,7 +183,8 @@ var modelePanneau = repoV2 + 'panneau_bpce.pdf'; // panneau avec QR code (option
 var modelePanneauPhoto = repoV2 + 'Panneau%20BPCE%205.pdf';
 var modelePanneauSansPhoto = repoV2 + 'Panneau%20BPCE%206.pdf';
 var modeleFlyer = repoV2 + 'flyer_bpce.pdf';
-var modeleCarte = repoV2 + 'carte_bpce.pdf';
+var modeleCartePhoto = repoV2 + 'Carte-de-visite-BPCE%203.pdf';
+var modeleCarteSansPhoto = repoV2 + 'Carte-de-visite-BPCE%205.pdf';
 
 // Vrai si l'agent a coché "Une mandataire immobilier" (accord au féminin)
 function est_feminin(metier) {
@@ -307,9 +308,9 @@ async function panneau_qr(nom, numero, photo) {
 // Carte de visite (V2 - DA BPCE), fond recto-verso 156 x 235.5 pt (55 x 83 mm)
 // Le modèle du repo remplace le fichier passé par la page ("fichier" est ignoré).
 // "Mandataire immobilier", le site et le verso sont déjà dans le fond.
-// Photo (avec sa bordure orange) en bas à gauche seulement si photo !== null.
+// Deux modèles : avec photo (photo en bas à gauche, QR code à droite) ou sans photo (QR code en bas à gauche).
 async function carte_de_visite(nom, mail, metier, numero, fichier, photo) {
-    const existingPdfBytes = await fetch(modeleCarte).then(res => res.arrayBuffer())
+    const existingPdfBytes = await fetch(photo !== null ? modeleCartePhoto : modeleCarteSansPhoto).then(res => res.arrayBuffer())
     const pdfDoc = await PDFDocument.load(existingPdfBytes)
 
     pdfDoc.registerFontkit(fontkit)
@@ -350,9 +351,10 @@ async function carte_de_visite(nom, mail, metier, numero, fichier, photo) {
         draw_Image(pngImage, page, 15.1, 26.0 + oy, 62.9, 62.9)
     }
 
-    // QR code dans le carré blanc
+    // QR code dans le carré blanc : petit à droite avec photo, grand à gauche sans photo
     const qrImage = await pdfDoc.embedPng(await qr_to_png(format_agent(nom)))
-    draw_Image(qrImage, page, 107.1, 42.9 + oy, 24.7, 24.7)
+    if (photo !== null) draw_Image(qrImage, page, 107.1, 42.9 + oy, 24.7, 24.7)
+    else draw_Image(qrImage, page, 17.8, 43.8 + oy, 37.5, 37.5)
 
     return await pdfDoc.save();
 }
