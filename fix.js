@@ -179,12 +179,12 @@ var ppsansextra = 'https://cdn.jsdelivr.net/gh/theoliberkeys/assets-agents/ppsan
 // Fichiers lus sur GitHub (raw), branche main : un nouveau modèle déposé est pris en compte en ~5 min
 var repoV2 = 'https://raw.githubusercontent.com/MktLK/assets-agents-v2/main/';
 var latoregu = repoV2 + 'lato-regular.ttf';
-var modelePanneau = repoV2 + 'panneau_bpce.pdf'; // panneau avec QR code (option)
+var modelePanneau = repoV2 + 'Copy%20of%20Panneau%20BPCE%202.pdf'; // panneau avec QR code (option)
 var modelePanneauPhoto = repoV2 + 'Panneau%20BPCE%205.pdf';
 var modelePanneauSansPhoto = repoV2 + 'Panneau%20BPCE%206.pdf';
-var modeleFlyer = repoV2 + 'flyer_bpce.pdf';
-var modeleCartePhoto = repoV2 + 'Carte-de-visite-BPCE%203.pdf';
-var modeleCarteSansPhoto = repoV2 + 'Carte-de-visite-BPCE%205.pdf';
+var modeleFlyer = repoV2 + 'Flyer-BPCE%206.pdf';
+var modeleCartePhoto = repoV2 + 'Carte-de-visite-BPCE%2013.pdf';
+var modeleCarteSansPhoto = repoV2 + 'Carte-de-visite-BPCE%2011.pdf';
 
 // Vrai si l'agent a coché "Une mandataire immobilier" (accord au féminin)
 function est_feminin(metier) {
