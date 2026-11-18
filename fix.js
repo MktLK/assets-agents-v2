@@ -179,7 +179,9 @@ var ppsansextra = 'https://cdn.jsdelivr.net/gh/theoliberkeys/assets-agents/ppsan
 // Fichiers lus sur GitHub (raw), branche main : un nouveau modèle déposé est pris en compte en ~5 min
 var repoV2 = 'https://raw.githubusercontent.com/MktLK/assets-agents-v2/main/';
 var latoregu = repoV2 + 'lato-regular.ttf';
-var modelePanneau = repoV2 + 'panneau_bpce.pdf';
+var modelePanneau = repoV2 + 'panneau_bpce.pdf'; // panneau avec QR code (option)
+var modelePanneauPhoto = repoV2 + 'Panneau%20BPCE%205.pdf';
+var modelePanneauSansPhoto = repoV2 + 'Panneau%20BPCE%206.pdf';
 var modeleFlyer = repoV2 + 'flyer_bpce.pdf';
 var modeleCarte = repoV2 + 'carte_bpce.pdf';
 
@@ -204,9 +206,63 @@ function taille_max(texte, police, taille, largeurMax) {
     return taille;
 }
 
-// Panneau unique recto-verso (V2 - DA BPCE) : page 1 "À vendre", page 2 "C'est vendu"
-// Fond : PDF 1984.5 x 1701 pt. Photo affichée seulement si photo !== null.
+// Largeur d'un texte avec espacement des lettres (em = fraction de la taille, comme dans Canva)
+function largeur_espacee(texte, police, taille, em) {
+    return police.widthOfTextAtSize(texte, taille) + em * taille * Math.max(texte.length - 1, 0);
+}
+
+// Dessine un texte lettre par lettre avec espacement (pdf-lib 1.4 n'a pas d'interlettrage)
+function draw_Text_espace(texte, page, x, y, taille, police, couleur, em) {
+    for (const lettre of texte) {
+        draw_Text(lettre, page, x, y, taille, police, couleur, 0);
+        x += police.widthOfTextAtSize(lettre, taille) + em * taille;
+    }
+}
+
+// Panneau principal recto-verso (V2 - DA BPCE) : page 1 "À vendre !", page 2 "C'est vendu !"
+// Fond : PDF 1984.5 x 1701 pt. Deux modèles : avec photo (rond + trait) ou sans photo (bloc centré).
 async function panneau(nom, numero, photo) {
+    const avecPhoto = photo !== null
+    const existingPdfBytes = await fetch(avecPhoto ? modelePanneauPhoto : modelePanneauSansPhoto).then(res => res.arrayBuffer())
+    const pdfDoc = await PDFDocument.load(existingPdfBytes)
+
+    pdfDoc.registerFontkit(fontkit)
+    const ppextra = await pdfDoc.embedFont(await fetch(ppsansextra).then(res => res.arrayBuffer()))
+    const ppregu = await pdfDoc.embedFont(await fetch(ppsansregu).then(res => res.arrayBuffer()))
+
+    let pngImage = null
+    if (avecPhoto) {
+        pngImage = await pdfDoc.embedPng(await fetch(photo).then(res => res.arrayBuffer()))
+    }
+
+    const rsacText = get_RSAC()
+    // Centre du bloc texte : à droite du trait avec photo, centre de la page sans photo
+    const centreX = avecPhoto ? 1248.9 : 992.25
+    const largeurMax = avecPhoto ? 1200 : 1600
+    const espacementNom = 0.04 // interlettrage du nom dans le modèle Canva
+    let tailleNom = 90.98
+    while (tailleNom > 20 && largeur_espacee(nom, ppregu, tailleNom, espacementNom) > largeurMax) tailleNom -= 0.5
+    const largeurNom = largeur_espacee(nom, ppregu, tailleNom, espacementNom)
+    const tailleNum = taille_max(numero, ppextra, 144.1, 1200)
+
+    for (const page of pdfDoc.getPages()) {
+        // Canva ajoute un fond perdu : on décale tout de l'origine de la zone visible
+        const oy = origine_y(page)
+        if (pngImage) draw_Image(pngImage, page, 154.8, 378 + oy, 380.8, 380.8)
+        draw_Text_espace(nom, page, centreX - largeurNom / 2, 667.7 + oy, tailleNom, ppregu, marron, espacementNom)
+        draw_Text(numero, page, centreX - ppextra.widthOfTextAtSize(numero, tailleNum) / 2, 498.2 + oy, tailleNum, ppextra, marron, 0)
+        // Mention légale verticale (blanc) sur le bord droit, lue de bas en haut
+        if (rsacText) {
+            const t = taille_max(rsacText, ppregu, 14, 1400)
+            draw_Text(rsacText, page, 1961.4, 1018 + oy, t, ppregu, rgb(1, 1, 1), 90)
+        }
+    }
+
+    return await pdfDoc.save();
+}
+
+// Panneau avec QR code (option "Panneau avec QR Code") : ancien modèle panneau_bpce.pdf
+async function panneau_qr(nom, numero, photo) {
     const existingPdfBytes = await fetch(modelePanneau).then(res => res.arrayBuffer())
     const pdfDoc = await PDFDocument.load(existingPdfBytes)
 
