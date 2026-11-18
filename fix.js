@@ -148,9 +148,22 @@ function draw_Image(source, page, axeX, axeY, hauteur, largeur) {
     })
 }
 
+// Ligatures (ff, fi, fl...) : pdf-lib 1.4 les dessine avec un mauvais espacement
+// (ex : "Schaeff er"). Les textes concernés sont mesurés et dessinés lettre par lettre.
+const LIGATURE = /f[fijlt]/;
+
 // Dessine du texte sur la page
 function draw_Text(source, page, axeX, axeY, taille, police, couleur, angle) {
-    
+    if (LIGATURE.test(source)) {
+        const rad = angle * Math.PI / 180;
+        for (const lettre of source) {
+            page.drawText(lettre, { x: axeX, y: axeY, size: taille, font: police, color: couleur, rotate: degrees(angle) });
+            const w = police.widthOfTextAtSize(lettre, taille);
+            axeX += w * Math.cos(rad);
+            axeY += w * Math.sin(rad);
+        }
+        return;
+    }
     // Dessine le texte à la position spécifiée
     page.drawText(source, {
         x: axeX,
@@ -161,6 +174,15 @@ function draw_Text(source, page, axeX, axeY, taille, police, couleur, angle) {
         rotate: degrees(angle),
     });
 }
+
+// Mesure cohérente avec draw_Text : lettre par lettre quand il y a une ligature
+const largeurOrigine = PDFLib.PDFFont.prototype.widthOfTextAtSize;
+PDFLib.PDFFont.prototype.widthOfTextAtSize = function (texte, taille) {
+    if (!LIGATURE.test(texte)) return largeurOrigine.call(this, texte, taille);
+    let w = 0;
+    for (const lettre of texte) w += largeurOrigine.call(this, lettre, taille);
+    return w;
+};
 
 // Récupère les bibliothèques nécessaires
 const { degrees, PDFDocument, rgb, StandardFonts } = PDFLib
