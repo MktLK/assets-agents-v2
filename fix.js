@@ -86,11 +86,16 @@ async function image_to_png(imgValue) {
 }
 
 async function qr_to_png(lien_agent) {
+    return await qr_url_png(`https://liberkeys.com/agents/${lien_agent}`, 400);
+}
+
+// QR code vers n'importe quel lien (ex : annonce du bien). taille en pixels.
+async function qr_url_png(url, taille) {
     const qrCode = new QRCodeStyling({
-        width: 400,
-        height: 400,
+        width: taille,
+        height: taille,
         type: "png",
-        data: `https://liberkeys.com/agents/${lien_agent}`,
+        data: url,
         image: "https://uploads-ssl.webflow.com/6022985415e9f66f2904c07b/65eed933aa7b1a8118ed5b37_lk.png",
         margin: 0,
         qrOptions: {
@@ -284,8 +289,9 @@ async function panneau(nom, numero, photo) {
     return await pdfDoc.save();
 }
 
-// Panneau avec QR code (option "Panneau avec QR Code") : ancien modèle panneau_bpce.pdf
-async function panneau_qr(nom, numero, photo) {
+// Panneau avec QR code vers l'annonce du bien (générateur "panneau QR", page dédiée).
+// lien : URL de l'annonce. Sans lien, le carré blanc du modèle reste vide.
+async function panneau_qr(nom, numero, photo, lien) {
     const existingPdfBytes = await fetch(modelePanneau).then(res => res.arrayBuffer())
     const pdfDoc = await PDFDocument.load(existingPdfBytes)
 
@@ -301,7 +307,11 @@ async function panneau_qr(nom, numero, photo) {
         pngImage = await pdfDoc.embedPng(await fetch(photo).then(res => res.arrayBuffer()))
     }
 
-    // QR code volontairement non imprimé : le carré blanc du modèle reste vide
+    // QR code vers l'annonce (haute définition pour l'impression grand format)
+    let qrImage = null
+    if (lien) {
+        qrImage = await pdfDoc.embedPng(await qr_url_png(lien, 1200))
+    }
 
     const rsacText = get_RSAC()
     const centreX = 1321.5 // centre de la colonne de droite
@@ -314,6 +324,7 @@ async function panneau_qr(nom, numero, photo) {
     for (const page of pages) {
         // Canva ajoute un fond perdu : on décale tout de l'origine de la zone visible
         const oy = origine_y(page)
+        if (qrImage) draw_Image(qrImage, page, 209.1, 407.2 + oy, 391.4, 391.4)
         if (pngImage) draw_Image(pngImage, page, 1173.1, 554.7 + oy, 297.7, 297.7)
         draw_Text(nom, page, centreX - ppregu.widthOfTextAtSize(nom, tailleNom) / 2, yNom + oy, tailleNom, ppregu, marron, 0)
         draw_Text(numero, page, centreX - ppextra.widthOfTextAtSize(numero, tailleNum) / 2, 345.4 + oy, tailleNum, ppextra, marron, 0)
