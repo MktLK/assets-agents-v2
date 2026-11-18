@@ -279,8 +279,7 @@ async function panneau_qr(nom, numero, photo) {
         pngImage = await pdfDoc.embedPng(await fetch(photo).then(res => res.arrayBuffer()))
     }
 
-    // QR code vers la page de l'agent
-    const qrImage = await pdfDoc.embedPng(await qr_to_png(format_agent(nom)))
+    // QR code volontairement non imprimé : le carré blanc du modèle reste vide
 
     const rsacText = get_RSAC()
     const centreX = 1321.5 // centre de la colonne de droite
@@ -293,7 +292,6 @@ async function panneau_qr(nom, numero, photo) {
     for (const page of pages) {
         // Canva ajoute un fond perdu : on décale tout de l'origine de la zone visible
         const oy = origine_y(page)
-        draw_Image(qrImage, page, 209.1, 407.2 + oy, 391.4, 391.4)
         if (pngImage) draw_Image(pngImage, page, 1173.1, 554.7 + oy, 297.7, 297.7)
         draw_Text(nom, page, centreX - ppregu.widthOfTextAtSize(nom, tailleNom) / 2, yNom + oy, tailleNom, ppregu, marron, 0)
         draw_Text(numero, page, centreX - ppextra.widthOfTextAtSize(numero, tailleNum) / 2, 345.4 + oy, tailleNum, ppextra, marron, 0)
