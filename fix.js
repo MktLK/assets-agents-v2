@@ -183,7 +183,7 @@ var modelePanneau = repoV2 + 'Copy%20of%20Panneau%20BPCE%202.pdf'; // panneau av
 var modelePanneauPhoto = repoV2 + 'Panneau%20BPCE%205.pdf';
 var modelePanneauSansPhoto = repoV2 + 'Panneau%20BPCE%206.pdf';
 var modeleFlyer = repoV2 + 'Flyer-BPCE%206.pdf';
-var modeleCartePhoto = repoV2 + 'Carte-de-visite-BPCE%2013.pdf';
+var modeleCartePhoto = repoV2 + 'Carte-de-visite-BPCE%202.pdf';
 var modeleCarteSansPhoto = repoV2 + 'Carte-de-visite-BPCE%2011.pdf';
 
 // Vrai si l'agent a coché "Une mandataire immobilier" (accord au féminin)
