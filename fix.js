@@ -210,7 +210,7 @@ var modelePanneau = repoV2 + 'Copy%20of%20Panneau%20BPCE%202.pdf'; // panneau av
 var modelePanneauPhoto = repoV2 + 'Panneau%20BPCE%205.pdf';
 var modelePanneauSansPhoto = repoV2 + 'Panneau%20BPCE%206.pdf';
 var modeleFlyer = repoV2 + 'Flyer-BPCE%206.pdf';
-var modeleCartePhoto = repoV2 + 'Carte-de-visite-BPCE%202.pdf';
+var modeleCartePhoto = repoV2 + 'Carte-de-visite-BPCE%205.pdf';
 var modeleCarteSansPhoto = repoV2 + 'Carte-de-visite-BPCE%2011.pdf';
 
 // Vrai si l'agent a coché "Une mandataire immobilier" (accord au féminin)
@@ -384,7 +384,7 @@ async function carte_de_visite(nom, mail, metier, numero, fichier, photo) {
 
     // QR code dans le carré blanc : petit à droite avec photo, grand à gauche sans photo
     const qrImage = await pdfDoc.embedPng(await qr_to_png(format_agent(nom)))
-    if (photo !== null) draw_Image(qrImage, page, 107.1, 42.9 + oy, 24.7, 24.7)
+    if (photo !== null) draw_Image(qrImage, page, 107.7, 38.2 + oy, 30.9, 30.9)
     else draw_Image(qrImage, page, 17.8, 43.8 + oy, 37.5, 37.5)
 
     return await pdfDoc.save();
